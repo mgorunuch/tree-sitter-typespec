@@ -522,7 +522,7 @@ module.exports = grammar({
     )),
 
     quoted_string_fragment: _ => token.immediate(/[^"\\\r\n]+/),
-    triple_quoted_string_fragment: _ => token.immediate(/[^"\\]+/),
+    triple_quoted_string_fragment: _ => token.immediate(/[^"\\]+|"{1,2}/),
 
     _comment: $ => choice(
       $.single_line_comment,
