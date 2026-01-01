@@ -2734,7 +2734,7 @@
       "type": "IMMEDIATE_TOKEN",
       "content": {
         "type": "PATTERN",
-        "value": "[^\"\\\\]+"
+        "value": "[^\"\\\\]+|\"{1,2}"
       }
     },
     "_comment": {

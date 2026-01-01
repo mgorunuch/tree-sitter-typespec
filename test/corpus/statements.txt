@@ -1295,3 +1295,62 @@ model StringLiteralType is typeof "foo";
       (typeof_expression
         (quoted_string_literal
           (quoted_string_fragment))))))
+
+============================================
+Triple quoted strings with quotes inside
+============================================
+
+namespace App {
+  @doc("""
+    some ["doc"]
+    """)
+  @route("/route")
+  @post
+  op route(): Foo;
+}
+
+---
+
+(source_file
+  (namespace_statement
+    (identifier_or_member_expression
+      (identifier
+        (plain_identifier)))
+    (namespace_body
+      (operation_statement
+        (annotation_list
+          (annotation
+            (decorator
+              (identifier_or_member_expression
+                (identifier
+                  (plain_identifier)))
+              (decorator_arguments
+                (value_list
+                  (triple_quoted_string_literal
+                    (triple_quoted_string_fragment)
+                    (triple_quoted_string_fragment)
+                    (triple_quoted_string_fragment)
+                    (triple_quoted_string_fragment)
+                    (triple_quoted_string_fragment))))))
+          (annotation
+            (decorator
+              (identifier_or_member_expression
+                (identifier
+                  (plain_identifier)))
+              (decorator_arguments
+                (value_list
+                  (quoted_string_literal
+                    (quoted_string_fragment))))))
+          (annotation
+            (decorator
+              (identifier_or_member_expression
+                (identifier
+                  (plain_identifier))))))
+        (identifier
+          (plain_identifier))
+        (operation_signature_declaration
+          (operation_arguments)
+          (reference_expression
+            (identifier_or_member_expression
+              (identifier
+                (plain_identifier)))))))))
