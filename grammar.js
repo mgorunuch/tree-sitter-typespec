@@ -49,8 +49,13 @@ module.exports = grammar({
       $.identifier_or_member_expression,
     ),
 
+    // Accept both `#{...}` (strict TypeSpec value-object) and `{...}`
+    // (legacy / ADI dialect) as object literals in value contexts
+    // (e.g. decorator arguments). Model expressions in *type* contexts
+    // are still parsed as `model_expression` since they live in a
+    // different non-terminal (`_expression`, not `_value`).
     object_value: $ => seq(
-      "#{",
+      choice("#{", "{"),
       optional($._object_member_list),
       "}",
     ),
@@ -67,8 +72,10 @@ module.exports = grammar({
       field("value", $._value),
     ),
 
+    // See `object_value` — `[...]` is accepted alongside `#[...]` for
+    // the same dialect reasons.
     array_value: $ => seq(
-      "#[",
+      choice("#[", "["),
       optional($._array_value_list),
       "]",
     ),
@@ -169,7 +176,15 @@ module.exports = grammar({
     union_expression: $ => prec.left(1, seq(optional($._expression), "|", $._expression)),
     intersection_expression: $ => prec.left(2, seq(optional($._expression), "&", $._expression)),
     value_of_expression: $ => prec(3, seq("valueof", $._expression)),
-    array_expression: $ => prec(4, seq($._primary_expression, "[", "]")),
+    // Allow nested array types like `int64[][]`. Upstream only allowed a
+    // single `[]` since `_primary_expression` doesn't include
+    // `array_expression`; we make it self-recursive to fix that without
+    // widening to `_expression` (which would break union/intersection
+    // precedence, e.g. `A | B[]`).
+    array_expression: $ => prec(4, seq(
+      choice($._primary_expression, $.array_expression),
+      "[", "]",
+    )),
     typeof_expression: $ => seq("typeof", $._value),
 
     _primary_expression: $ => choice(
@@ -253,11 +268,31 @@ module.exports = grammar({
 
     interface_body: $ => seq("{", repeat($.interface_member), "}"),
 
-    interface_member: $ => seq(
+    // interface_member accepts either an operation declaration (standard
+    // TypeSpec: `op foo(): Bar;` or `foo(): Bar;`) or a bare
+    // model-property-style field (`foo: Bar;`). The latter is a
+    // concession to dialects like ADI's plugin.adi.tsp that use
+    // `interface` as a data holder. The property branch emits a
+    // distinct `interface_property` node so highlight queries can tell
+    // methods apart from fields.
+    interface_member: $ => choice(
+      seq(
+        optional($.annotation_list),
+        optional("op"),
+        field("name", $.identifier),
+        $._operation_signature,
+        ";",
+      ),
+      $.interface_property,
+    ),
+
+    interface_property: $ => seq(
       optional($.annotation_list),
-      optional("op"),
-      field("name", $.identifier),
-      $._operation_signature,
+      field("name", choice($.identifier, $._string_literal)),
+      optional("?"),
+      ":",
+      field("type", $._expression),
+      optional(seq("=", field("value", $._expression))),
       ";",
     ),
 
